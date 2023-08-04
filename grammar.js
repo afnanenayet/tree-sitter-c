@@ -12,8 +12,8 @@
 
 const PREC = {
   PAREN_DECLARATOR: -10,
-  ASSIGNMENT: -1,
-  CONDITIONAL: -2,
+  ASSIGNMENT: -2,
+  CONDITIONAL: -1,
   DEFAULT: 0,
   LOGICAL_OR: 1,
   LOGICAL_AND: 2,
@@ -57,13 +57,10 @@ module.exports = grammar({
   conflicts: $ => [
     [$._type_specifier, $._declarator],
     [$._type_specifier, $._declarator, $.macro_type_specifier],
-    [$._type_specifier, $._expression],
-    [$._type_specifier, $._expression, $.macro_type_specifier],
     [$._type_specifier, $._expression_not_binary],
     [$._type_specifier, $._expression_not_binary, $.macro_type_specifier],
     [$._type_specifier, $.macro_type_specifier],
     [$.sized_type_specifier],
-    [$._type_specifier, $.sized_type_specifier],
     [$.attributed_statement],
     [$._declaration_modifiers, $.attributed_statement],
     [$.enum_specifier],
@@ -117,14 +114,14 @@ module.exports = grammar({
         $.identifier,
         alias($.preproc_call_expression, $.call_expression),
       )),
-      '\n',
+      token.immediate(/\r?\n/),
     ),
 
     preproc_def: $ => seq(
       preprocessor('define'),
       field('name', $.identifier),
       field('value', optional($.preproc_arg)),
-      '\n',
+      token.immediate(/\r?\n/),
     ),
 
     preproc_function_def: $ => seq(
@@ -132,7 +129,7 @@ module.exports = grammar({
       field('name', $.identifier),
       field('parameters', $.preproc_params),
       field('value', optional($.preproc_arg)),
-      '\n',
+      token.immediate(/\r?\n/),
     ),
 
     preproc_params: $ => seq(
@@ -142,13 +139,13 @@ module.exports = grammar({
     preproc_call: $ => seq(
       field('directive', $.preproc_directive),
       field('argument', optional($.preproc_arg)),
-      '\n',
+      token.immediate(/\r?\n/),
     ),
 
     ...preprocIf('', $ => $._block_item),
     ...preprocIf('_in_field_declaration_list', $ => $._field_declaration_list_item),
 
-    preproc_arg: _ => token(prec(-1, /\S(.|\\\r?\n)*/)),
+    preproc_arg: _ => token(prec(-1, /\S([^/\n]|\/[^*]|\\\r?\n)*/)),
     preproc_directive: _ => /#[ \t]*[a-zA-Z0-9]\w*/,
 
     _preproc_expression: $ => choice(
@@ -233,7 +230,7 @@ module.exports = grammar({
     declaration: $ => seq(
       $._declaration_specifiers,
       commaSep1(field('declarator', choice(
-        $._declarator,
+        seq($._declarator, optional($.gnu_asm_expression)),
         $.init_declarator,
       ))),
       ';',
@@ -497,6 +494,7 @@ module.exports = grammar({
       'register',
       'inline',
       'thread_local',
+      '__thread',
     ),
 
     type_qualifier: _ => choice(
@@ -575,6 +573,7 @@ module.exports = grammar({
 
     struct_specifier: $ => prec.right(seq(
       'struct',
+      optional($.attribute_specifier),
       optional($.ms_declspec_modifier),
       choice(
         seq(
