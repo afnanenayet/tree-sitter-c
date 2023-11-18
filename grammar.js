@@ -22,12 +22,12 @@ const PREC = {
   BITWISE_AND: 5,
   EQUAL: 6,
   RELATIONAL: 7,
-  SIZEOF: 8,
-  OFFSETOF: 9,
-  SHIFT: 10,
-  ADD: 11,
-  MULTIPLY: 12,
-  CAST: 13,
+  OFFSETOF: 8,
+  SHIFT: 9,
+  ADD: 10,
+  MULTIPLY: 11,
+  CAST: 12,
+  SIZEOF: 13,
   UNARY: 14,
   CALL: 15,
   FIELD: 16,
@@ -705,6 +705,8 @@ module.exports = grammar({
       $.break_statement,
       $.continue_statement,
       $.goto_statement,
+      $.seh_try_statement,
+      $.seh_leave_statement,
     ),
 
     _top_level_statement: $ => choice(
@@ -821,6 +823,27 @@ module.exports = grammar({
       'goto',
       field('label', $._statement_identifier),
       ';',
+    ),
+
+    seh_try_statement: $ => seq(
+      '__try',
+      field('body', $.compound_statement),
+      choice($.seh_except_clause, $.seh_finally_clause),
+    ),
+
+    seh_except_clause: $ => seq(
+      '__except',
+      field('filter', $.parenthesized_expression),
+      field('body', $.compound_statement),
+    ),
+
+    seh_finally_clause: $ => seq(
+      '__finally',
+      field('body', $.compound_statement),
+    ),
+
+    seh_leave_statement: _ => seq(
+      '__leave', ';',
     ),
 
     // Expressions
@@ -1192,7 +1215,8 @@ module.exports = grammar({
     null: _ => choice('NULL', 'nullptr'),
 
     identifier: _ =>
-      /(\p{XID_Start}|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*/,
+      // eslint-disable-next-line max-len
+      /(\p{XID_Start}|\$|_|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})(\p{XID_Continue}|\$|\\u[0-9A-Fa-f]{4}|\\U[0-9A-Fa-f]{8})*/,
 
     _type_identifier: $ => alias(
       $.identifier,
