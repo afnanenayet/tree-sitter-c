@@ -719,7 +719,7 @@ int main() {
           (sizeof_expression
             (parenthesized_expression
               (number_literal)))
-              (number_literal)))
+          (number_literal)))
       (expression_statement
         (sizeof_expression
           (parenthesized_expression
@@ -818,7 +818,7 @@ int main() {
         (offsetof_expression
           (type_descriptor
             (type_identifier))
-              (field_identifier)))
+          (field_identifier)))
       (expression_statement
         (binary_expression
           (offsetof_expression
@@ -834,7 +834,9 @@ Compound literals
 int main() {
   x = (SomeType) {
     .f1.f2[f3] = 5,
-    .f4 = {}
+    .f4 = {},
+    .f5[1 ... 10] = -1,
+    f6: 6,
   };
   y = (struct SomeStruct) {
     7,
@@ -870,7 +872,17 @@ int main() {
               (initializer_pair
                 (field_designator
                   (field_identifier))
-                (initializer_list))))))
+                (initializer_list))
+              (initializer_pair
+                (field_designator
+                  (field_identifier))
+                (subscript_range_designator
+                  (number_literal)
+                  (number_literal))
+                (number_literal))
+              (initializer_pair
+                (field_identifier)
+                (number_literal))))))
       (expression_statement
         (assignment_expression
           (identifier)
@@ -1310,6 +1322,7 @@ Ternary
 void f() {
   0 ? 1 : 2;
   a = 0 ? 1 : 2;
+  a = val ? b = 3, 1 : 0;
 }
 
 --------------------------------------------------------------------------------
@@ -1332,4 +1345,84 @@ void f() {
           (conditional_expression
             (number_literal)
             (number_literal)
+            (number_literal))))
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (conditional_expression
+            (identifier)
+            (comma_expression
+              (assignment_expression
+                (identifier)
+                (number_literal))
+              (number_literal))
             (number_literal)))))))
+
+================================================================================
+Concatenated strings
+================================================================================
+
+foo("hello" PRI " world");
+foo("hello" PRI);
+foo("hello" " world");
+foo("hello" " world " PRI);
+foo(PRI "hello" PRI);
+foo(PRI "hello");
+
+--------------------------------------------------------------------------------
+
+(translation_unit
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (string_literal
+            (string_content))
+          (identifier)
+          (string_literal
+            (string_content))))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (string_literal
+            (string_content))
+          (identifier)))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (string_literal
+            (string_content))
+          (string_literal
+            (string_content))))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (string_literal
+            (string_content))
+          (string_literal
+            (string_content))
+          (identifier)))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (identifier)
+          (string_literal
+            (string_content))
+          (identifier)))))
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (argument_list
+        (concatenated_string
+          (identifier)
+          (string_literal
+            (string_content)))))))
